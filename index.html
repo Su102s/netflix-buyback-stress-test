@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netflix Buyback Stress Test</title>
+<meta name="description" content="An interactive stress test of Netflix's share buybacks: how far can cash flow fall before buybacks break Netflix's own minimum-cash rule?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-2: #f0eee9;
+  --ink: #18191b;
+  --muted: #5d6168;
+  --line: #e2dfd8;
+  --accent: #b3121b;
+  --accent-soft: #fbe9ea;
+  --inflow: #2f6db5;
+  --locked: #3d4652;
+  --flex: #8a94a3;
+  --capex: #b4bac3;
+  --fcf: #1b7f86;
+  --debt: #6c5a8e;
+  --buyback: #b3121b;
+  --go: #1f8a4c;
+  --go-soft: #e4f3ea;
+  --slow: #b86e00;
+  --slow-soft: #fbf0dc;
+  --stop: #c62828;
+  --stop-soft: #fbe5e5;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111214;
+    --surface: #1a1c1f;
+    --surface-2: #23262a;
+    --ink: #ececec;
+    --muted: #a3a7ae;
+    --line: #2e3136;
+    --accent: #ff4d55;
+    --accent-soft: #3a1c1e;
+    --inflow: #6aa3e8;
+    --locked: #c3cad4;
+    --flex: #7f8896;
+    --capex: #555c66;
+    --fcf: #4cc3ca;
+    --debt: #a892d4;
+    --buyback: #ff4d55;
+    --go: #4cc47e;
+    --go-soft: #15301f;
+    --slow: #f0a640;
+    --slow-soft: #352812;
+    --stop: #ff6b6b;
+    --stop-soft: #3a1a1a;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111214;
+  --surface: #1a1c1f;
+  --surface-2: #23262a;
+  --ink: #ececec;
+  --muted: #a3a7ae;
+  --line: #2e3136;
+  --accent: #ff4d55;
+  --accent-soft: #3a1c1e;
+  --inflow: #6aa3e8;
+  --locked: #c3cad4;
+  --flex: #7f8896;
+  --capex: #555c66;
+  --fcf: #4cc3ca;
+  --debt: #a892d4;
+  --buyback: #ff4d55;
+  --go: #4cc47e;
+  --go-soft: #15301f;
+  --slow: #f0a640;
+  --slow-soft: #352812;
+  --stop: #ff6b6b;
+  --stop-soft: #3a1a1a;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+h1, h2, h3 { line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); font-weight: 750; margin-bottom: 12px; }
+h3 { font-size: 1.05rem; font-weight: 650; }
+p { margin: 0 0 12px; }
+.eyebrow { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 720px; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+button { font: inherit; cursor: pointer; }
+
+/* Hero */
+header.hero { padding: 64px 0 48px; }
+.hero h1 span { color: var(--accent); }
+.hero .lede { margin-top: 16px; }
+.hero-stats { margin-top: 32px; }
+.stat .num { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.stat .lbl { color: var(--muted); font-size: .9rem; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; font-size: .85rem; color: var(--muted); gap: 12px; }
+.theme-btn { background: var(--surface); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-size: .8rem; }
+
+/* Analogy */
+.analogy { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px 14px; align-items: center; }
+.analogy .a { font-weight: 600; }
+.analogy .arrow { color: var(--muted); }
+.analogy .b { color: var(--muted); }
+.question { margin-top: 18px; padding: 16px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; font-weight: 550; }
+
+/* Key numbers */
+.key { display: flex; flex-direction: column; gap: 6px; }
+.key .num { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.key .tag { align-self: flex-start; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
+.key button { margin-top: auto; align-self: flex-start; background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: .85rem; }
+.key button:hover { border-color: var(--ink); }
+.tag.go { background: var(--go-soft); color: var(--go); }
+.tag.slow { background: var(--slow-soft); color: var(--slow); }
+.tag.stop { background: var(--stop-soft); color: var(--stop); }
+
+/* Lab */
+.lab { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .lab { grid-template-columns: 1fr; } }
+.controls { position: sticky; top: 16px; }
+@media (max-width: 860px) { .controls { position: static; } }
+.ctl { margin-bottom: 22px; }
+.ctl:last-child { margin-bottom: 0; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: .92rem; }
+.ctl label output { color: var(--accent); font-weight: 750; white-space: nowrap; }
+.ctl .hint { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+.ctl .ends { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 8px 0 2px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 8px; }
+.seg button { flex: 1; background: var(--surface); color: var(--ink); border: 0; padding: 7px 4px; font-size: .82rem; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); font-weight: 650; }
+.reset { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 0; font-size: .82rem; }
+
+.verdict { border-radius: 14px; padding: 20px; border: 1px solid var(--line); }
+.verdict.go { background: var(--go-soft); border-color: transparent; }
+.verdict.slow { background: var(--slow-soft); border-color: transparent; }
+.verdict.stop { background: var(--stop-soft); border-color: transparent; }
+.verdict .head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.light { width: 14px; height: 14px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent); }
+.verdict.go .head { color: var(--go); }
+.verdict.slow .head { color: var(--slow); }
+.verdict.stop .head { color: var(--stop); }
+.verdict .word { font-size: 1.35rem; font-weight: 800; letter-spacing: .02em; }
+.verdict .sub { font-weight: 600; font-size: .95rem; }
+.verdict p { margin: 0; color: var(--ink); }
+
+.mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+.mini .card { padding: 14px; }
+.mini .v { font-size: 1.35rem; font-weight: 750; }
+.mini .k { font-size: .78rem; color: var(--muted); }
+
+/* Waterfall */
+.wf-row { display: grid; grid-template-columns: 190px 1fr 74px; gap: 10px; align-items: center; padding: 5px 0; }
+.wf-row .lab-t { font-size: .88rem; }
+.wf-row .lab-t small { display: block; color: var(--muted); font-size: .74rem; line-height: 1.3; }
+.wf-row.total .lab-t { font-weight: 700; }
+.wf-track { position: relative; height: 22px; }
+.wf-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; transition: left .35s ease, width .35s ease, background .35s; }
+.wf-zero { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--muted); opacity: .5; }
+.wf-val { text-align: right; font-weight: 650; font-size: .9rem; white-space: nowrap; }
+.wf-sep { border-top: 1px dashed var(--line); margin: 4px 0; }
+@media (max-width: 560px) {
+  .wf-row { grid-template-columns: 1fr 64px; }
+  .wf-row .lab-t { grid-column: 1 / -1; }
+}
+
+/* Cash tank */
+.tank-row { display: grid; grid-template-columns: 130px 1fr 70px; gap: 10px; align-items: center; margin: 10px 0; }
+.tank { position: relative; height: 28px; background: var(--surface-2); border-radius: 6px; overflow: visible; }
+.tank .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; transition: width .35s ease, background .35s; }
+.tank .floor { position: absolute; top: -8px; bottom: -8px; width: 2px; background: var(--ink); }
+.tank-legend { position: relative; height: 34px; margin-left: 140px; margin-right: 80px; font-size: .75rem; color: var(--muted); }
+.tank-legend span { position: absolute; transform: translateX(-50%); white-space: nowrap; text-align: center; line-height: 1.3; }
+@media (max-width: 560px) {
+  .tank-row { grid-template-columns: 1fr 64px; }
+  .tank-row .t-lab { grid-column: 1 / -1; }
+  .tank-legend { margin-left: 0; margin-right: 74px; }
+}
+
+/* Chart */
+#chart { width: 100%; }
+#chart svg { display: block; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .8rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+
+/* Test 1 */
+.eps-row { display: grid; grid-template-columns: 50px 1fr; gap: 10px; align-items: center; margin: 10px 0; }
+.eps-bars { display: flex; flex-direction: column; gap: 3px; }
+.eps-bar { height: 16px; border-radius: 3px; display: flex; align-items: center; padding-left: 6px; font-size: .74rem; font-weight: 650; color: #fff; white-space: nowrap; transition: width .4s; }
+.eps-bar.thin { color: var(--ink); background: none !important; padding-left: 0; }
+.eps-bar.thin::before { content: ""; display: inline-block; height: 16px; border-radius: 3px; background: var(--buyback); margin-right: 6px; width: var(--w); }
+.gauge { position: relative; height: 12px; background: var(--surface-2); border-radius: 999px; margin: 26px 0 30px; }
+.gauge .band { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--go) 35%, transparent); border-radius: 999px; }
+.gauge .pin { position: absolute; top: -6px; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; transform: translateX(-50%); transition: left .3s; }
+.gauge .tick { position: absolute; top: 16px; font-size: .72rem; color: var(--muted); transform: translateX(-50%); }
+.gauge .band-lbl { position: absolute; top: -22px; font-size: .72rem; color: var(--go); transform: translateX(-50%); white-space: nowrap; }
+table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+.table-scroll { overflow-x: auto; }
+
+/* Rule */
+.rule .card { border-top: 4px solid; }
+.rule .go { border-top-color: var(--go); }
+.rule .slow { border-top-color: var(--slow); }
+.rule .stop { border-top-color: var(--stop); }
+.rule h3 { margin-bottom: 6px; }
+
+ul.clean { padding-left: 18px; margin: 0; }
+ul.clean li { margin-bottom: 6px; }
+a { color: var(--accent); }
+footer { padding: 40px 0 56px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top-bar">
+    <span>Corporate finance · case study</span>
+    <button class="theme-btn" id="themeBtn" type="button">Toggle theme</button>
+  </div>
+
+  <header class="hero">
+    <div class="eyebrow">Netflix · FY2025 stress test</div>
+    <h1>Is Netflix's buyback cash <span>really spare?</span></h1>
+    <p class="lede">Netflix says it only returns <em>excess</em> cash to shareholders. Over 2023–2025 that meant $21.4bn of share buybacks, 92% of its free cash flow. This page tests how much cash flow can fall before those buybacks break Netflix's own minimum-cash rule. You can move the assumptions yourself.</p>
+    <div class="grid g4 hero-stats">
+      <div class="stat"><div class="num">$9.1bn</div><div class="lbl">bought back in 2025</div></div>
+      <div class="stat"><div class="num">$1.5bn</div><div class="lbl">cash above Netflix's own 2-month floor</div></div>
+      <div class="stat"><div class="num">$24.0bn</div><div class="lbl">content already contracted, 76% off balance sheet</div></div>
+      <div class="stat"><div class="num">65%</div><div class="lbl">of a year's content spend locked in for the next 12 months</div></div>
+    </div>
+  </header>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The idea in plain terms</div>
+    <h2>Think of Netflix as a household</h2>
+    <p class="lede">A stress test asks one question: if income drops, which bills can't be cut, and what has to give?</p>
+    <div class="grid g2" style="margin-top:24px">
+      <div class="card">
+        <div class="analogy">
+          <div class="a">Cash from subscribers</div><div class="arrow">→</div><div class="b">Salary</div>
+          <div class="a">Content already signed</div><div class="arrow">→</div><div class="b">Rent on a signed lease: you pay it even if your salary falls</div>
+          <div class="a">Content not yet signed</div><div class="arrow">→</div><div class="b">Spending you could cut, at a cost</div>
+          <div class="a">Debt due in 2026</div><div class="arrow">→</div><div class="b">A loan instalment</div>
+          <div class="a">2 months of revenue in cash</div><div class="arrow">→</div><div class="b">The emergency fund you promised yourself</div>
+          <div class="a">Share buybacks</div><div class="arrow">→</div><div class="b">Optional spending</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>What makes Netflix fragile</h3>
+        <ul class="clean" style="margin-top:10px">
+          <li><strong>The cushion is thin.</strong> Netflix held $9.1bn of cash and short-term investments at end-2025. Its own minimum is about $7.5bn, so only $1.5bn is spare.</li>
+          <li><strong>Buybacks are six times the cushion.</strong> The $9.1bn buyback in 2025 was paid from that year's new cash flow, not from savings.</li>
+          <li><strong>Costs are sticky.</strong> $11.5bn of content payments fall due within a year and are already signed. If revenue drops, these costs don't.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="question">So: if cash flow falls, can Netflix keep buying back $9.1bn a year without dipping below its own emergency fund?</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The answer in three numbers</div>
+    <h2>How far can cash flow fall?</h2>
+    <p class="lede">Each number is the drop in cash flow (before content payments) at which something breaks, assuming buybacks continue at the 2025 pace. Click one to load it into the simulator.</p>
+    <div class="grid g3" style="margin-top:24px">
+      <div class="card key">
+        <span class="tag stop">Pause</span>
+        <div class="num">3%</div>
+        <p>If Netflix <strong>keeps content spending at 2025 levels</strong>, a 3% drop already pushes cash below the 2-month floor.</p>
+        <button type="button" data-preset="0.035,0">Show this case ↓</button>
+      </div>
+      <div class="card key">
+        <span class="tag slow">Slow down</span>
+        <div class="num">20%</div>
+        <p>Even if Netflix <strong>cuts content to only what is already signed</strong>, at a 20% drop free cash flow no longer covers debt plus buybacks.</p>
+        <button type="button" data-preset="0.20,1">Show this case ↓</button>
+      </div>
+      <div class="card key">
+        <span class="tag stop">Pause</span>
+        <div class="num">25%</div>
+        <p>With content cut to the contracted minimum, a 25% drop would push cash below the floor.</p>
+        <button type="button" data-preset="0.255,1">Show this case ↓</button>
+      </div>
+    </div>
+    <p class="muted small" style="margin-top:14px">Reality sits between the two content assumptions. Netflix can trim unsigned projects, but cutting content too hard hurts future subscribers and revenue.</p>
+  </div>
+</section>
+
+<section id="lab">
+  <div class="wrap">
+    <div class="eyebrow">Stress-test simulator</div>
+    <h2>Try it yourself</h2>
+    <p class="lede">The base year is FY2025 and the test covers the next 12 months. All figures are in US dollars.</p>
+
+    <div class="lab" style="margin-top:24px">
+      <div class="card controls">
+        <div class="ctl">
+          <label for="drop">Drop in cash flow <output id="dropOut">0%</output></label>
+          <input type="range" id="drop" min="0" max="50" step="0.5" value="0">
+          <div class="ends"><span>No shock</span><span>−50%</span></div>
+          <div class="hint">Operating cash flow before content payments: $27.9bn in 2025.</div>
+        </div>
+        <div class="ctl">
+          <label for="flex">Unsigned content cut <output id="flexOut">0%</output></label>
+          <input type="range" id="flex" min="0" max="100" step="5" value="0">
+          <div class="ends"><span>Keep 2025 spend</span><span>Pay only signed</span></div>
+          <div class="hint">2025 content cash spend was $17.7bn; $11.5bn of next year's is already signed.</div>
+        </div>
+        <div class="ctl">
+          <label for="pace">Buybacks vs 2025 pace <output id="paceOut">100%</output></label>
+          <input type="range" id="pace" min="0" max="150" step="5" value="100">
+          <div class="ends"><span>None</span><span>1.5×</span></div>
+        </div>
+        <div class="ctl">
+          <label>Payments for unannounced titles</label>
+          <div class="seg" id="unknownSeg" role="group" aria-label="Extra payments for unannounced titles">
+            <button type="button" data-v="0" aria-pressed="true">$0</button>
+            <button type="button" data-v="333" aria-pressed="false">$0.3bn</button>
+            <button type="button" data-v="1333" aria-pressed="false">$1.3bn</button>
+          </div>
+          <div class="hint">The 10-K estimates $1–4bn over three years for content not yet in the commitment table.</div>
+        </div>
+        <button type="button" class="reset" id="resetBtn">Reset to FY2025 base</button>
+      </div>
+
+      <div>
+        <div class="verdict" id="verdict" aria-live="polite">
+          <div class="head"><span class="light"></span><span class="word" id="vWord"></span><span class="sub" id="vSub"></span></div>
+          <p id="vText"></p>
+        </div>
+
+        <div class="mini">
+          <div class="card"><div class="k">Free cash flow</div><div class="v" id="mFcf"></div></div>
+          <div class="card"><div class="k">Coverage of debt + buybacks</div><div class="v" id="mCov"></div></div>
+          <div class="card"><div class="k">Cash after 12 months</div><div class="v" id="mCash"></div></div>
+          <div class="card"><div class="k">Buybacks it can afford</div><div class="v" id="mAfford"></div></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Where the money goes</h3>
+          <p class="muted small">Each bar starts where the previous one ends. Grey bars are bills, the red bar is buybacks.</p>
+          <div id="waterfall" style="margin-top:12px"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>The emergency fund</h3>
+          <p class="muted small">The black line is Netflix's own floor: two months of 2025 revenue ($7.5bn). If the cash bar ends left of the line, buybacks should pause.</p>
+          <div id="tank"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>How the verdict changes as cash flow falls</h3>
+          <p class="muted small">Buybacks Netflix can afford at each level of shock, under your content and payment settings. Where the lines cross the 2025 pace, the verdict changes.</p>
+          <div id="chart"></div>
+          <div class="legend">
+            <span><i style="background:var(--fcf)"></i>From free cash flow alone</span>
+            <span><i style="background:var(--ink);opacity:.55"></i>Plus spare cash above the floor</span>
+            <span><i style="background:var(--buyback)"></i>Planned buybacks</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <div class="wrap">
+    <div class="eyebrow">Recommendation</div>
+    <h2>Hold management to its own rule</h2>
+    <p class="lede">Netflix's own rule (keep about two months of revenue in cash) becomes a simple traffic light for each year's buybacks.</p>
+    <div class="grid g3" style="margin-top:24px">
+      <div class="card go"><h3 style="color:var(--go)">Continue</h3><p>Free cash flow covers maturing debt plus planned buybacks (≥ 1.0×), and cash stays above the 2-month floor.</p></div>
+      <div class="card slow"><h3 style="color:var(--slow)">Slow down</h3><p>Coverage falls below 1.0×. Fill the gap only with cash that sits above the floor.</p></div>
+      <div class="card stop"><h3 style="color:var(--stop)">Pause</h3><p>Continuing would push cash below the floor. Stop buybacks rather than break the rule or borrow to fund them.</p></div>
+    </div>
+    <p class="muted" style="margin-top:16px">One more check sits on top: when the share price implies growth far above what is realistic (see below), keeping the cash or repaying debt may serve shareholders better.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Context · Do buybacks create value?</div>
+    <h2>Higher EPS came from profit, not from fewer shares</h2>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h3>Where EPS growth came from</h3>
+        <p class="muted small">Annual growth in diluted EPS, split into net-income growth and the extra boost from a smaller share count.</p>
+        <div id="eps"></div>
+        <div class="legend"><span><i style="background:var(--fcf)"></i>Net income growth</span><span><i style="background:var(--buyback)"></i>Boost from fewer shares</span></div>
+      </div>
+      <div class="card">
+        <h3>Why the boost was so small</h3>
+        <ul class="clean" style="margin-top:10px">
+          <li>Netflix bought back <strong>330 million</strong> shares over 2023–2025 (split-adjusted).</li>
+          <li>Shares outstanding fell by only <strong>231 million</strong>, about 5%.</li>
+          <li>Roughly <strong>3 in every 10</strong> shares bought back were replaced by newly issued ones.</li>
+          <li>Buybacks shrink equity, so ROE rises almost automatically. Neither EPS nor ROE shows whether value was created. The price paid does.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>What growth does the buyback price assume?</h3>
+      <p class="muted small">This runs the Gordon growth model backwards. Given the average price Netflix paid, its free cash flow per share and the return shareholders require, it solves for the perpetual growth that makes the price fair: g = (r·P − FCF) / (P + FCF).</p>
+      <div class="seg" id="yearSeg" role="group" aria-label="Buyback year" style="max-width:320px">
+        <button type="button" data-y="2023" aria-pressed="false">2023</button>
+        <button type="button" data-y="2024" aria-pressed="false">2024</button>
+        <button type="button" data-y="2025" aria-pressed="true">2025</button>
+      </div>
+      <div class="grid g2" style="margin-top:16px">
+        <div>
+          <div class="ctl">
+            <label for="price">Price paid per share <output id="priceOut"></output></label>
+            <input type="range" id="price" min="20" max="200" step="1">
+          </div>
+          <div class="ctl">
+            <label for="coe">Cost of equity (CAPM) <output id="coeOut"></output></label>
+            <input type="range" id="coe" min="6" max="16" step="0.1">
+          </div>
+          <p class="small muted" id="fcfps"></p>
+        </div>
+        <div>
+          <div class="muted small">Implied perpetual growth</div>
+          <div style="font-size:2.6rem;font-weight:800;letter-spacing:-.03em;line-height:1.1" id="gOut"></div>
+          <div class="gauge" id="gauge">
+            <div class="band" style="left:16.67%;width:16.67%"></div>
+            <div class="band-lbl" style="left:25%">typical long-run assumption</div>
+            <div class="pin" id="gPin"></div>
+          </div>
+          <p class="small" id="gText"></p>
+        </div>
+      </div>
+      <div class="table-scroll" style="margin-top:8px">
+        <table>
+          <thead><tr><th>Year</th><th>Avg buyback price</th><th>FCF / share</th><th>FCF yield</th><th>Cost of equity</th><th>Implied g</th></tr></thead>
+          <tbody id="gTable"></tbody>
+        </table>
+      </div>
+      <p class="muted small" style="margin-top:10px">In 2025 Netflix paid an average of $106 a share, but the stock ended the year at $94, so those purchases ended the year underwater. At over 40× earnings, "we buy because our shares are cheap" is hard to argue.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Method</div>
+    <h2>How the stress test works</h2>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h3>The model (next 12 months, FY2025 base)</h3>
+        <ul class="clean small" style="margin-top:10px">
+          <li><strong>Cash flow before content</strong> = operating cash flow + content cash spend = $10.15bn + $17.71bn = $27.86bn, then reduced by the shock.</li>
+          <li><strong>Content payments</strong> run from the 2025 level ($17.71bn) down to the signed minimum due within one year ($11.53bn), plus optional payments for unannounced titles.</li>
+          <li><strong>Free cash flow</strong> = cash flow before content − content payments − capex ($0.69bn).</li>
+          <li><strong>Bills</strong> = 2026 debt maturity ($1.0bn) + buybacks at the chosen pace (2025: $9.13bn).</li>
+          <li><strong>Floor</strong> = two months of 2025 revenue ($45.18bn ÷ 6 = $7.53bn), against $9.06bn of cash and short-term investments.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Simplifications</h3>
+        <ul class="clean small" style="margin-top:10px">
+          <li>The shock is applied directly to cash flow before content payments. Taxes, working capital and FX effects are not modelled.</li>
+          <li>Content payments are not deducted twice: they already sit inside operating cash flow.</li>
+          <li>No new borrowing is assumed. Netflix also has an undrawn $3bn revolving credit facility.</li>
+          <li>Cutting content to the signed minimum is an optimistic bound: less new content would hurt future subscribers and revenue.</li>
+          <li>The 10-K risk factors state that Netflix may be unable to reduce content commitments quickly if cash flow falls. That is the premise of this test.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Sources</h3>
+      <ul class="clean small" style="margin-top:10px">
+        <li>Netflix Form 10-K <a href="https://www.sec.gov/Archives/edgar/data/1065280/000106528026000034/nflx-20251231.htm">FY2025</a>, <a href="https://www.sec.gov/Archives/edgar/data/1065280/000106528024000030/nflx-20231231.htm">FY2023</a> and <a href="https://www.sec.gov/Archives/edgar/data/1065280/000106528022000036/nflx-20211231.htm">FY2021</a>: content commitments, balance sheet, cash-flow statement, debt notes and repurchases.</li>
+        <li>Netflix Q3 2023 shareholder letter: minimum cash of about two months of revenue.</li>
+        <li>Cost of equity: 10-year Treasury (FRED annual average), Damodaran implied equity risk premium (Jan 2026), β = 1.61.</li>
+        <li>Share prices: Yahoo Finance, split-adjusted (10-for-1 split, November 2025).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Built by Suyi as an extension of my section of a university corporate-finance group project. The underlying data workbook and stress-test model are my own work.</p>
+    <p>For educational purposes only. This is not investment advice.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // FY2025 base, USD millions (from the data workbook)
+  const BASE = {
+    preContentCF: 27856.728,
+    contentFlat: 17707.455,
+    contracted: 11528.03,
+    capex: 688.22,
+    debt: 998.865,
+    buyback: 9127.167,
+    cash: 9062.359,
+    revenue: 45183.036,
+  };
+  const FLOOR = BASE.revenue / 6;
+  const SPARE = BASE.cash - FLOOR;
+
+  const $ = (id) => document.getElementById(id);
+  const state = { drop: 0, flex: 0, pace: 1, unknown: 0 };
+
+  const bn = (m, d = 1) => {
+    const v = m / 1000;
+    const s = Math.abs(v).toFixed(d);
+    return (v < -0.0005 ? "−$" : "$") + s + "bn";
+  };
+  const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+
+  function model(s) {
+    const content = BASE.contentFlat - s.flex * (BASE.contentFlat - BASE.contracted) + s.unknown;
+    const inflow = BASE.preContentCF * (1 - s.drop);
+    const fcf = inflow - content - BASE.capex;
+    const buyback = BASE.buyback * s.pace;
+    const need = BASE.debt + buyback;
+    const cov = need > 0 ? fcf / need : Infinity;
+    const gap = fcf - need;
+    const endCash = BASE.cash + gap;
+    const status = endCash < FLOOR - 0.5 ? "stop" : cov < 1 ? "slow" : "go";
+    const fixed = content + BASE.capex + BASE.debt + buyback;
+    return {
+      content, inflow, fcf, buyback, need, cov, gap, endCash, status,
+      affordFcf: Math.max(0, fcf - BASE.debt),
+      affordAll: Math.max(0, fcf - BASE.debt + SPARE),
+      dSlow: 1 - fixed / BASE.preContentCF,
+      dPause: 1 - (fixed - SPARE) / BASE.preContentCF,
+    };
+  }
+
+  function contentPhrase(s) {
+    if (s.flex === 0) return "keeps content spending at its 2025 level";
+    if (s.flex === 1) return "cuts content to what it has already signed";
+    return `cuts ${pct(s.flex)} of its unsigned content spending`;
+  }
+
+  function renderVerdict(s, r) {
+    const v = $("verdict");
+    v.className = "verdict " + r.status;
+    const words = { go: "CONTINUE", slow: "SLOW DOWN", stop: "PAUSE" };
+    const subs = {
+      go: "Free cash flow covers the bills",
+      slow: "Gap can be filled from spare cash",
+      stop: "Buybacks would break the cash floor",
+    };
+    $("vWord").textContent = words[r.status];
+    $("vSub").textContent = subs[r.status];
+
+    const shock = s.drop > 0
+      ? `If cash flow falls ${pct(s.drop, s.drop * 100 % 1 ? 1 : 0)} and Netflix`
+      : "With no fall in cash flow, if Netflix";
+    let t = `${shock} ${contentPhrase(s)}, free cash flow over the next year would be ${bn(r.fcf)}. `;
+    t += `Its bills are ${bn(BASE.debt)} of maturing debt plus ${bn(r.buyback)} of buybacks, ${bn(r.need)} in total. `;
+    if (r.status === "go") {
+      t += `Free cash flow covers them ${r.cov.toFixed(2)}×, with ${bn(r.gap)} left over.`;
+    } else if (r.status === "slow") {
+      t += `That leaves a ${bn(-r.gap)} shortfall. Netflix can fill it from cash above its 2-month floor, but that uses ${pct(-r.gap / SPARE)} of its ${bn(SPARE)} cushion.`;
+    } else {
+      t += `That leaves a ${bn(-r.gap)} shortfall, more than the ${bn(SPARE)} Netflix holds above its own floor. Cash would end ${bn(FLOOR - r.endCash)} below the floor. Without breaking the rule, it could afford ${bn(r.affordAll)} of buybacks.`;
+    }
+    $("vText").textContent = t;
+
+    $("mFcf").textContent = bn(r.fcf);
+    $("mCov").textContent = r.need > 0 ? r.cov.toFixed(2) + "×" : "—";
+    $("mCov").style.color = r.cov >= 1 ? "var(--go)" : "var(--slow)";
+    $("mCash").textContent = bn(r.endCash);
+    $("mCash").style.color = r.endCash < FLOOR ? "var(--stop)" : "";
+    $("mAfford").textContent = bn(r.affordAll);
+  }
+
+  function renderWaterfall(s, r) {
+    const flexPart = BASE.contentFlat - BASE.contracted - s.flex * (BASE.contentFlat - BASE.contracted);
+    const steps = [
+      { label: "Cash from operations", note: "before content payments", d: r.inflow, color: "var(--inflow)", total: true },
+      { label: "Signed content", note: "due within 12 months", d: -BASE.contracted, color: "var(--locked)" },
+      { label: "Unsigned content", note: "the part Netflix could cut", d: -flexPart, color: "var(--flex)" },
+      ...(s.unknown ? [{ label: "Unannounced titles", note: "10-K estimate", d: -s.unknown, color: "var(--flex)" }] : []),
+      { label: "Capex", note: "property & equipment", d: -BASE.capex, color: "var(--capex)" },
+      { label: "= Free cash flow", d: r.fcf, color: "var(--fcf)", total: true, sep: true },
+      { label: "Debt due 2026", d: -BASE.debt, color: "var(--debt)" },
+      { label: "Buybacks", note: `${pct(s.pace)} of 2025 pace`, d: -r.buyback, color: "var(--buyback)" },
+      { label: "= Change in cash", d: r.gap, color: r.gap >= 0 ? "var(--go)" : "var(--stop)", total: true, sep: true },
+    ];
+    let run = 0;
+    const spans = steps.map((st) => {
+      let a, b;
+      if (st.total) { a = 0; b = st.d; run = st.d; }
+      else { a = run; b = run + st.d; run = b; }
+      return [Math.min(a, b), Math.max(a, b)];
+    });
+    const lo = Math.min(0, ...spans.map((x) => x[0]));
+    const hi = Math.max(BASE.preContentCF, ...spans.map((x) => x[1]));
+    const X = (v) => ((v - lo) / (hi - lo)) * 100;
+    const zero = X(0);
+    $("waterfall").innerHTML = steps.map((st, i) => {
+      const [a, b] = spans[i];
+      return `${st.sep ? '<div class="wf-sep"></div>' : ""}
+      <div class="wf-row${st.total ? " total" : ""}">
+        <div class="lab-t">${st.label}${st.note ? `<small>${st.note}</small>` : ""}</div>
+        <div class="wf-track">
+          <div class="wf-zero" style="left:${zero}%"></div>
+          <div class="wf-bar" style="left:${X(a)}%;width:${Math.max(0.3, X(b) - X(a))}%;background:${st.color}"></div>
+        </div>
+        <div class="wf-val">${st.total ? "" : st.d < 0 ? "−" : ""}${st.total ? bn(st.d) : bn(Math.abs(st.d))}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderTank(r) {
+    const max = Math.max(12000, BASE.cash * 1.15, r.endCash * 1.05);
+    const X = (v) => (Math.max(0, v) / max) * 100;
+    const endColor = r.endCash < FLOOR ? "var(--stop)" : r.endCash < BASE.cash ? "var(--slow)" : "var(--go)";
+    $("tank").innerHTML = `
+      <div class="tank-row">
+        <div class="t-lab small">Cash today<br><span class="muted">end-2025</span></div>
+        <div class="tank"><div class="fill" style="width:${X(BASE.cash)}%;background:var(--inflow)"></div><div class="floor" style="left:${X(FLOOR)}%"></div></div>
+        <div class="wf-val">${bn(BASE.cash)}</div>
+      </div>
+      <div class="tank-row">
+        <div class="t-lab small">Cash in 12 months<br><span class="muted">this scenario</span></div>
+        <div class="tank"><div class="fill" style="width:${X(r.endCash)}%;background:${endColor}"></div><div class="floor" style="left:${X(FLOOR)}%"></div></div>
+        <div class="wf-val" style="color:${r.endCash < FLOOR ? "var(--stop)" : "inherit"}">${bn(r.endCash)}</div>
+      </div>
+      <div class="tank-legend"><span style="left:${X(FLOOR)}%">▲ floor<br>${bn(FLOOR)}</span></div>`;
+  }
+
+  function renderChart(s) {
+    const el = $("chart");
+    const W = Math.max(300, el.clientWidth);
+    const H = 280;
+    const m = { l: 46, r: 12, t: 26, b: 40 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const maxD = 0.5;
+    const pts = [];
+    for (let i = 0; i <= 100; i++) {
+      const d = (i / 100) * maxD;
+      const r = model({ ...s, drop: d });
+      pts.push({ d, f: r.affordFcf, a: r.affordAll });
+    }
+    const yMax = Math.max(BASE.buyback * 1.6, ...pts.map((p) => p.a), BASE.buyback * s.pace * 1.15) / 1000;
+    const x = (d) => m.l + (d / maxD) * iw;
+    const y = (v) => m.t + ih - (v / 1000 / yMax) * ih;
+    const line = (key) => pts.map((p, i) => `${i ? "L" : "M"}${x(p.d).toFixed(1)},${y(p[key]).toFixed(1)}`).join("");
+    const r0 = model(s);
+    const B = BASE.buyback * s.pace;
+
+    // status strip along the x axis
+    let strip = "";
+    const segs = 200;
+    for (let i = 0; i < segs; i++) {
+      const d = ((i + 0.5) / segs) * maxD;
+      const st = model({ ...s, drop: d }).status;
+      const col = st === "go" ? "var(--go)" : st === "slow" ? "var(--slow)" : "var(--stop)";
+      strip += `<rect x="${x((i / segs) * maxD)}" y="${m.t + ih + 4}" width="${iw / segs + 0.6}" height="6" fill="${col}"/>`;
+    }
+
+    let ticks = "";
+    for (let d = 0; d <= maxD + 1e-9; d += 0.1) {
+      ticks += `<text x="${x(d)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="var(--muted)">−${Math.round(d * 100)}%</text>`;
+    }
+    const step = yMax > 16 ? 5 : yMax > 8 ? 2 : 1;
+    let yt = "";
+    for (let v = 0; v <= yMax; v += step) {
+      yt += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v * 1000)}" y2="${y(v * 1000)}" stroke="var(--line)"/>`;
+      yt += `<text x="${m.l - 8}" y="${y(v * 1000) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">$${v}bn</text>`;
+    }
+
+    const marks = [];
+    if (B > 0) {
+      if (r0.dSlow > 0 && r0.dSlow < maxD) marks.push({ d: r0.dSlow, c: "var(--slow)", t: `slow ${pct(r0.dSlow)}` });
+      if (r0.dPause > 0 && r0.dPause < maxD) marks.push({ d: r0.dPause, c: "var(--stop)", t: `pause ${pct(r0.dPause)}` });
+    }
+    let mk = "";
+    marks.forEach((k, i) => {
+      const yy = y(B);
+      mk += `<circle cx="${x(k.d)}" cy="${yy}" r="4.5" fill="${k.c}" stroke="var(--surface)" stroke-width="2"/>`;
+      const near = marks.length === 2 && Math.abs(x(marks[0].d) - x(marks[1].d)) < 70;
+      const ty = near && i === 1 ? yy + 18 : yy - 10;
+      mk += `<text x="${x(k.d)}" y="${ty}" text-anchor="middle" font-size="11" font-weight="700" fill="${k.c}">${k.t}</text>`;
+    });
+
+    el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Affordable buybacks by size of cash-flow shock">
+      ${yt}
+      ${strip}
+      <path d="${line("a")}" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2" stroke-dasharray="5 4"/>
+      <path d="${line("f")}" fill="none" stroke="var(--fcf)" stroke-width="2.5"/>
+      <line x1="${m.l}" x2="${W - m.r}" y1="${y(B)}" y2="${y(B)}" stroke="var(--buyback)" stroke-width="2"/>
+      <text x="${W - m.r}" y="${y(B) - 6}" text-anchor="end" font-size="11" fill="var(--buyback)" font-weight="600">planned ${bn(B)}</text>
+      <line x1="${x(s.drop)}" x2="${x(s.drop)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--ink)" stroke-opacity=".35"/>
+      <text x="${x(s.drop)}" y="${m.t - 10}" text-anchor="middle" font-size="11" fill="var(--muted)">you are here</text>
+      ${mk}
+    </svg>`;
+  }
+
+  function render() {
+    const r = model(state);
+    $("dropOut").textContent = "−" + pct(state.drop, state.drop * 100 % 1 ? 1 : 0);
+    $("flexOut").textContent = pct(state.flex);
+    $("paceOut").textContent = pct(state.pace);
+    renderVerdict(state, r);
+    renderWaterfall(state, r);
+    renderTank(r);
+    renderChart(state);
+  }
+
+  $("drop").addEventListener("input", (e) => { state.drop = +e.target.value / 100; render(); });
+  $("flex").addEventListener("input", (e) => { state.flex = +e.target.value / 100; render(); });
+  $("pace").addEventListener("input", (e) => { state.pace = +e.target.value / 100; render(); });
+  document.querySelectorAll("#unknownSeg button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#unknownSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    state.unknown = +b.dataset.v;
+    render();
+  }));
+
+  function setState(drop, flex, pace = 1, unknown = 0) {
+    Object.assign(state, { drop, flex, pace, unknown });
+    $("drop").value = drop * 100;
+    $("flex").value = flex * 100;
+    $("pace").value = pace * 100;
+    document.querySelectorAll("#unknownSeg button").forEach((x) => x.setAttribute("aria-pressed", +x.dataset.v === unknown));
+    render();
+  }
+  $("resetBtn").addEventListener("click", () => setState(0, 0));
+  document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
+    const [d, f] = b.dataset.preset.split(",").map(Number);
+    setState(d, f);
+    $("lab").scrollIntoView({ behavior: "smooth" });
+  }));
+
+  let rt;
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => renderChart(state), 120); });
+
+  // ---- Test 1: EPS decomposition and implied growth ----
+  const EPS = [
+    { y: 2023, ni: 0.2039, sh: 0.0048 },
+    { y: 2024, ni: 0.6109, sh: 0.0375 },
+    { y: 2025, ni: 0.2605, sh: 0.0141 },
+  ];
+  const maxG = 0.65;
+  $("eps").innerHTML = EPS.map((e) => `
+    <div class="eps-row">
+      <div style="font-weight:650">${e.y}</div>
+      <div class="eps-bars">
+        <div class="eps-bar" style="width:${(e.ni / maxG) * 100}%;background:var(--fcf)">+${(e.ni * 100).toFixed(1)}%</div>
+        <div class="eps-bar thin" style="--w:${Math.max(2, (e.sh / maxG) * 100 * 3)}px">+${(e.sh * 100).toFixed(1)} pts</div>
+      </div>
+    </div>`).join("");
+  // thin bars: draw at true scale relative to the container
+  requestAnimationFrame(() => {
+    const track = document.querySelector("#eps .eps-bars");
+    if (!track) return;
+    const w = track.clientWidth;
+    document.querySelectorAll("#eps .eps-bar.thin").forEach((el, i) => {
+      el.style.setProperty("--w", Math.max(2, (EPS[i].sh / maxG) * w) + "px");
+    });
+  });
+
+  // Average buyback price, FCF per diluted share, CAPM cost of equity
+  const YEARS = {
+    2023: { p: 42.02, f: 6925.749 / 4494.966, r: 12.4 },
+    2024: { p: 63.29, f: 6921.826 / 4392.608, r: 11.4 },
+    2025: { p: 105.79, f: 9461.053 / 4343.863, r: 11.2 },
+  };
+  const impliedG = (P, F, r) => (r * P - F) / (P + F);
+  $("gTable").innerHTML = Object.entries(YEARS).map(([y, v]) =>
+    `<tr><td>${y}</td><td>$${v.p.toFixed(2)}</td><td>$${v.f.toFixed(2)}</td><td>${pct(v.f / v.p, 1)}</td><td>${v.r.toFixed(1)}%</td><td><strong>${pct(impliedG(v.p, v.f, v.r / 100), 1)}</strong></td></tr>`
+  ).join("");
+
+  let gYear = 2025;
+  function renderG() {
+    const P = +$("price").value, r = +$("coe").value / 100, F = YEARS[gYear].f;
+    const g = impliedG(P, F, r);
+    $("priceOut").textContent = "$" + P;
+    $("coeOut").textContent = (r * 100).toFixed(1) + "%";
+    $("fcfps").textContent = `${gYear} free cash flow per share: $${F.toFixed(2)}, a ${pct(F / P, 1)} yield at this price.`;
+    $("gOut").textContent = pct(g, 1) + " a year";
+    $("gOut").style.color = g > 0.04 ? "var(--accent)" : "var(--go)";
+    $("gPin").style.left = Math.min(100, Math.max(0, (g / 0.12) * 100)) + "%";
+    $("gText").textContent = g > 0.04
+      ? "Forever. Valuation models usually cap perpetual growth near long-run economic growth, so this price is a bet on growth staying unusually high."
+      : "Forever. This is within the range valuation models usually treat as sustainable.";
+  }
+  const gauge = $("gauge");
+  [0, 3, 6, 9, 12].forEach((v) => {
+    const t = document.createElement("div");
+    t.className = "tick"; t.style.left = (v / 12) * 100 + "%"; t.textContent = v + "%";
+    gauge.appendChild(t);
+  });
+  function setYear(y) {
+    gYear = y;
+    document.querySelectorAll("#yearSeg button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.y === y));
+    $("price").value = Math.round(YEARS[y].p);
+    $("coe").value = YEARS[y].r;
+    renderG();
+  }
+  document.querySelectorAll("#yearSeg button").forEach((b) => b.addEventListener("click", () => setYear(+b.dataset.y)));
+  $("price").addEventListener("input", renderG);
+  $("coe").addEventListener("input", renderG);
+
+  // theme toggle
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  $("themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    render();
+  });
+
+  setYear(2025);
+  render();
+})();
+</script>
+</body>
+</html>
